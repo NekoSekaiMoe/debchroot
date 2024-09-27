@@ -1,0 +1,18 @@
+name: 'Action debootstrap'
+description: 'Run cross-architecture via debootstrap.'
+author: 'dabao1955'
+inputs:
+  arch:
+    default: 'arm64'
+  version:
+    default: 'bookworm'  
+
+
+runs:
+  using: 'composite'
+  steps:
+
+    - name: Build Kernel
+      shell: bash
+      run: |
+        
