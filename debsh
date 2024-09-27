@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+
+set -e
+
+if [ "$(id -u)" -eq 0 ]; then
+    export SU=
+else
+    export SU=sudo
+fi
+
+"$SU" chroot "$HOME/rootfs"  "$@"
