@@ -1,4 +1,7 @@
 name: 'Action debootstrap'
+branding:
+  icon: 'check-square'
+  color: 'blue'
 description: 'Run cross-architecture via debootstrap.'
 author: 'dabao1955'
 inputs:
