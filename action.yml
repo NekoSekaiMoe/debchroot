@@ -15,6 +15,17 @@ runs:
     - name: Build Kernel
       shell: bash
       run: |
+
+         if [[ ${GITHUB_ACTIONS} != "true" || ${OSTYPE} != "linux-gnu" || ! -f /bin/apt ]]; then
+             printf "This Action Is Intended For Debian-based Runner.\n"
+             exit 127
+         fi
+
+         if [ "$(id -u)" -eq 0 ]; then
+             export SU=
+         else
+             export SU=sudo
+         fi
          echo "::group:: Installing Building Depend Packages"
          "$SU" apt-get update
          "$SU" apt-get install --no-install-recommends -y qemu-user-static debootstrap
