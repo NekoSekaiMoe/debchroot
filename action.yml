@@ -31,13 +31,13 @@ runs:
          "$SU" apt-get install --no-install-recommends -y qemu-user-static debootstrap
          echo "::endgroup::"
 
-         echo "::group:: Installing Building Depend Packages"
+         echo "::group:: Initializing rootfs"
          "$SU" debootstrap  --variant=minbase --arch ${{ inputs.arch }} ${{ inputs.version }} "$HOME/rootfs"
          echo "::endgroup::"
 
          echo "::group:: Downloading shell"
          "$SU" wget https://github.com/NekoSekaiMoe/debchroot/raw/main/debsh -O /usr/bin/debsh
-         "$SU" chmod +x /usr/bin/debsh
+         "$SU" chmod +x -v /usr/bin/debsh
          echo "::endgroup::"
 
          echo "::group:: Running uname -a"
