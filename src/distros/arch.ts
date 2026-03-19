@@ -12,7 +12,12 @@ export class ArchHandler implements DistroHandler {
 
 	async installTools(packageManager: PackageManager): Promise<void> {
 		// arch-install-scripts provides pacstrap
-		await installPackages(packageManager, ['arch-install-scripts', 'qemu-user-static']);
+		// pacman-package-manager provides pacman command needed by pacstrap
+		await installPackages(packageManager, [
+			'arch-install-scripts',
+			'qemu-user-static',
+			'pacman-package-manager',
+		]);
 	}
 
 	async createRootfs(config: DistroConfig): Promise<void> {

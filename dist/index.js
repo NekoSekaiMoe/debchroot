@@ -21884,7 +21884,11 @@ var ArchHandler = class {
     return;
   }
   async installTools(packageManager2) {
-    await installPackages(packageManager2, ["arch-install-scripts", "qemu-user-static"]);
+    await installPackages(packageManager2, [
+      "arch-install-scripts",
+      "qemu-user-static",
+      "pacman-package-manager"
+    ]);
   }
   async createRootfs(config) {
     const sudo = await getSudo();

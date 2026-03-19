@@ -31,39 +31,43 @@ describe('ArchHandler', () => {
 			vi.mocked(system.installPackages).mockResolvedValue(undefined);
 		});
 
-		it('should install arch-install-scripts and qemu-user-static with apt', async () => {
+		it('should install arch-install-scripts, qemu-user-static and pacman-package-manager with apt', async () => {
 			await handler.installTools('apt');
 
 			expect(system.installPackages).toHaveBeenCalledWith('apt', [
 				'arch-install-scripts',
 				'qemu-user-static',
+				'pacman-package-manager',
 			]);
 		});
 
-		it('should install arch-install-scripts and qemu-user-static with dnf', async () => {
+		it('should install arch-install-scripts, qemu-user-static and pacman-package-manager with dnf', async () => {
 			await handler.installTools('dnf');
 
 			expect(system.installPackages).toHaveBeenCalledWith('dnf', [
 				'arch-install-scripts',
 				'qemu-user-static',
+				'pacman-package-manager',
 			]);
 		});
 
-		it('should install arch-install-scripts and qemu-user-static with zypper', async () => {
+		it('should install arch-install-scripts, qemu-user-static and pacman-package-manager with zypper', async () => {
 			await handler.installTools('zypper');
 
 			expect(system.installPackages).toHaveBeenCalledWith('zypper', [
 				'arch-install-scripts',
 				'qemu-user-static',
+				'pacman-package-manager',
 			]);
 		});
 
-		it('should install arch-install-scripts and qemu-user-static with pacman', async () => {
+		it('should install arch-install-scripts, qemu-user-static and pacman-package-manager with pacman', async () => {
 			await handler.installTools('pacman');
 
 			expect(system.installPackages).toHaveBeenCalledWith('pacman', [
 				'arch-install-scripts',
 				'qemu-user-static',
+				'pacman-package-manager',
 			]);
 		});
 
