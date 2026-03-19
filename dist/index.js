@@ -21901,7 +21901,7 @@ var ArchHandler = class {
     } else {
       await execWithOutput("mkdir", ["-p", "/etc/pacman.d"]);
     }
-    const mirrorCmd = `echo "${mirrorUrl}" | tee ${mirrorlistPath}`;
+    const mirrorCmd = `echo '${mirrorUrl}' | tee ${mirrorlistPath}`;
     if (sudo) {
       await execWithOutput("sudo", ["bash", "-c", mirrorCmd]);
     } else {
