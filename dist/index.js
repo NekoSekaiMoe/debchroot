@@ -21894,6 +21894,14 @@ var ArchHandler = class {
     const sudo = await getSudo();
     await execWithOutput(sudo || "mkdir", ["mkdir", "-p", config.rootfs].filter(Boolean));
     await installPackages(packageManager, ["archlinux-keyring"]);
+    const mirrorUrl = "Server = https://mirrors.kernel.org/archlinux/$repo/os/$arch";
+    const mirrorlistPath = "/etc/pacman.d/mirrorlist";
+    const mirrorCmd = `echo "${mirrorUrl}" | tee ${mirrorlistPath}`;
+    if (sudo) {
+      await execWithOutput("sudo", ["bash", "-c", mirrorCmd]);
+    } else {
+      await execWithOutput("bash", ["-c", mirrorCmd]);
+    }
     const packages = ["base"];
     if (config.packages.length > 0) {
       packages.push(...config.packages);
