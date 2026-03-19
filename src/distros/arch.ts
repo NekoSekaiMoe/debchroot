@@ -44,7 +44,7 @@ export class ArchHandler implements DistroHandler {
 			await execWithOutput('mkdir', ['-p', '/etc/pacman.d']);
 		}
 
-		// Create minimal pacman.conf if it doesn't exist
+		// Create minimal pacman.conf (always overwrite to ensure correct content)
 		const pacmanConfContent = `[options]
 HoldPkg = pacman glibc
 Architecture = auto
@@ -56,13 +56,11 @@ Include = /etc/pacman.d/mirrorlist
 Include = /etc/pacman.d/mirrorlist
 `;
 		const tempPacmanConf = path.join('/tmp', 'pacman.conf');
-		if (!fs.existsSync(pacmanConfPath)) {
-			fs.writeFileSync(tempPacmanConf, pacmanConfContent);
-			if (sudo) {
-				await execWithOutput('sudo', ['cp', tempPacmanConf, pacmanConfPath]);
-			} else {
-				fs.copyFileSync(tempPacmanConf, pacmanConfPath);
-			}
+		fs.writeFileSync(tempPacmanConf, pacmanConfContent);
+		if (sudo) {
+			await execWithOutput('sudo', ['cp', tempPacmanConf, pacmanConfPath]);
+		} else {
+			fs.copyFileSync(tempPacmanConf, pacmanConfPath);
 		}
 
 		// Write mirrorlist directly using Node.js fs, then fix permissions with sudo

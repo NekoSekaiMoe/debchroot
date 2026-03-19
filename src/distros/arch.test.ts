@@ -9,7 +9,6 @@ vi.mock('../utils/system');
 vi.mock('fs', () => ({
   writeFileSync: vi.fn(),
   copyFileSync: vi.fn(),
-  existsSync: vi.fn().mockReturnValue(false),
 }));
 
 describe('ArchHandler', () => {

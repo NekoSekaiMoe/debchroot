@@ -21915,13 +21915,11 @@ Include = /etc/pacman.d/mirrorlist
 Include = /etc/pacman.d/mirrorlist
 `;
     const tempPacmanConf = path.join("/tmp", "pacman.conf");
-    if (!fs2.existsSync(pacmanConfPath)) {
-      fs2.writeFileSync(tempPacmanConf, pacmanConfContent);
-      if (sudo) {
-        await execWithOutput("sudo", ["cp", tempPacmanConf, pacmanConfPath]);
-      } else {
-        fs2.copyFileSync(tempPacmanConf, pacmanConfPath);
-      }
+    fs2.writeFileSync(tempPacmanConf, pacmanConfContent);
+    if (sudo) {
+      await execWithOutput("sudo", ["cp", tempPacmanConf, pacmanConfPath]);
+    } else {
+      fs2.copyFileSync(tempPacmanConf, pacmanConfPath);
     }
     const tempMirrorlist = path.join("/tmp", "mirrorlist");
     fs2.writeFileSync(tempMirrorlist, mirrorUrl + "\n");
