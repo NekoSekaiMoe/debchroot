@@ -31,8 +31,9 @@ export class ArchHandler implements DistroHandler {
 		// pacstrap needs the arch-keyring to be installed first
 		await installPackages(packageManager, ['archlinux-keyring']);
 
-		// Configure pacman mirrorlist - required for pacstrap to work
-		// On fresh systems like GitHub Actions, no mirrorlist exists
+		// Configure pacman - required for pacstrap to work
+		// On fresh systems like GitHub Actions, no pacman.conf or mirrorlist exists
+		const pacmanConfPath = '/etc/pacman.conf';
 		const mirrorUrl = 'Server = https://mirrors.kernel.org/archlinux/$repo/os/$arch';
 		const mirrorlistPath = '/etc/pacman.d/mirrorlist';
 
@@ -41,6 +42,27 @@ export class ArchHandler implements DistroHandler {
 			await execWithOutput('sudo', ['mkdir', '-p', '/etc/pacman.d']);
 		} else {
 			await execWithOutput('mkdir', ['-p', '/etc/pacman.d']);
+		}
+
+		// Create minimal pacman.conf if it doesn't exist
+		const pacmanConfContent = `[options]
+HoldPkg = pacman glibc
+Architecture = auto
+
+[core]
+Include = /etc/pacman.d/mirrorlist
+
+[extra]
+Include = /etc/pacman.d/mirrorlist
+`;
+		const tempPacmanConf = path.join('/tmp', 'pacman.conf');
+		if (!fs.existsSync(pacmanConfPath)) {
+			fs.writeFileSync(tempPacmanConf, pacmanConfContent);
+			if (sudo) {
+				await execWithOutput('sudo', ['cp', tempPacmanConf, pacmanConfPath]);
+			} else {
+				fs.copyFileSync(tempPacmanConf, pacmanConfPath);
+			}
 		}
 
 		// Write mirrorlist directly using Node.js fs, then fix permissions with sudo

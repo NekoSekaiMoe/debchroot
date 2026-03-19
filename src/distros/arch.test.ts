@@ -1,10 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import * as fs from 'fs';
 import * as exec from '../utils/exec';
 import * as system from '../utils/system';
 import { ArchHandler, setPackageManager } from './arch';
 
 vi.mock('../utils/exec');
 vi.mock('../utils/system');
+vi.mock('fs', () => ({
+  writeFileSync: vi.fn(),
+  copyFileSync: vi.fn(),
+  existsSync: vi.fn().mockReturnValue(false),
+}));
 
 describe('ArchHandler', () => {
 	let handler: ArchHandler;

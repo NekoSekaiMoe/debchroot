@@ -21896,12 +21896,32 @@ var ArchHandler = class {
     const sudo = await getSudo();
     await execWithOutput(sudo || "mkdir", ["mkdir", "-p", config.rootfs].filter(Boolean));
     await installPackages(packageManager, ["archlinux-keyring"]);
+    const pacmanConfPath = "/etc/pacman.conf";
     const mirrorUrl = "Server = https://mirrors.kernel.org/archlinux/$repo/os/$arch";
     const mirrorlistPath = "/etc/pacman.d/mirrorlist";
     if (sudo) {
       await execWithOutput("sudo", ["mkdir", "-p", "/etc/pacman.d"]);
     } else {
       await execWithOutput("mkdir", ["-p", "/etc/pacman.d"]);
+    }
+    const pacmanConfContent = `[options]
+HoldPkg = pacman glibc
+Architecture = auto
+
+[core]
+Include = /etc/pacman.d/mirrorlist
+
+[extra]
+Include = /etc/pacman.d/mirrorlist
+`;
+    const tempPacmanConf = path.join("/tmp", "pacman.conf");
+    if (!fs2.existsSync(pacmanConfPath)) {
+      fs2.writeFileSync(tempPacmanConf, pacmanConfContent);
+      if (sudo) {
+        await execWithOutput("sudo", ["cp", tempPacmanConf, pacmanConfPath]);
+      } else {
+        fs2.copyFileSync(tempPacmanConf, pacmanConfPath);
+      }
     }
     const tempMirrorlist = path.join("/tmp", "mirrorlist");
     fs2.writeFileSync(tempMirrorlist, mirrorUrl + "\n");
