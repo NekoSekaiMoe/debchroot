@@ -45,9 +45,11 @@ export class ArchHandler implements DistroHandler {
 		}
 
 		// Create minimal pacman.conf (always overwrite to ensure correct content)
+		// SigLevel = Never is required because pacman-key doesn't work on Debian
 		const pacmanConfContent = `[options]
 HoldPkg = pacman glibc
 Architecture = auto
+SigLevel = Never
 
 [core]
 Include = /etc/pacman.d/mirrorlist
@@ -71,15 +73,6 @@ Include = /etc/pacman.d/mirrorlist
 			await execWithOutput('sudo', ['cp', tempMirrorlist, mirrorlistPath]);
 		} else {
 			fs.copyFileSync(tempMirrorlist, mirrorlistPath);
-		}
-
-		// Initialize pacman keyring - required for package signature verification
-		if (sudo) {
-			await execWithOutput('sudo', ['pacman-key', '--init']);
-			await execWithOutput('sudo', ['pacman-key', '--populate', 'archlinux']);
-		} else {
-			await execWithOutput('pacman-key', ['--init']);
-			await execWithOutput('pacman-key', ['--populate', 'archlinux']);
 		}
 
 		const packages = ['base'];

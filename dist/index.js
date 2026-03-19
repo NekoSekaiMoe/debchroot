@@ -21907,6 +21907,7 @@ var ArchHandler = class {
     const pacmanConfContent = `[options]
 HoldPkg = pacman glibc
 Architecture = auto
+SigLevel = Never
 
 [core]
 Include = /etc/pacman.d/mirrorlist
@@ -21927,13 +21928,6 @@ Include = /etc/pacman.d/mirrorlist
       await execWithOutput("sudo", ["cp", tempMirrorlist, mirrorlistPath]);
     } else {
       fs2.copyFileSync(tempMirrorlist, mirrorlistPath);
-    }
-    if (sudo) {
-      await execWithOutput("sudo", ["pacman-key", "--init"]);
-      await execWithOutput("sudo", ["pacman-key", "--populate", "archlinux"]);
-    } else {
-      await execWithOutput("pacman-key", ["--init"]);
-      await execWithOutput("pacman-key", ["--populate", "archlinux"]);
     }
     const packages = ["base"];
     if (config.packages.length > 0) {
