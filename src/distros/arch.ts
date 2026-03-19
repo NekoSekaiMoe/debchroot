@@ -73,6 +73,15 @@ Include = /etc/pacman.d/mirrorlist
 			fs.copyFileSync(tempMirrorlist, mirrorlistPath);
 		}
 
+		// Initialize pacman keyring - required for package signature verification
+		if (sudo) {
+			await execWithOutput('sudo', ['pacman-key', '--init']);
+			await execWithOutput('sudo', ['pacman-key', '--populate', 'archlinux']);
+		} else {
+			await execWithOutput('pacman-key', ['--init']);
+			await execWithOutput('pacman-key', ['--populate', 'archlinux']);
+		}
+
 		const packages = ['base'];
 		if (config.packages.length > 0) {
 			packages.push(...config.packages);
