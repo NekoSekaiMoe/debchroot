@@ -21896,6 +21896,11 @@ var ArchHandler = class {
     await installPackages(packageManager, ["archlinux-keyring"]);
     const mirrorUrl = "Server = https://mirrors.kernel.org/archlinux/$repo/os/$arch";
     const mirrorlistPath = "/etc/pacman.d/mirrorlist";
+    if (sudo) {
+      await execWithOutput("sudo", ["mkdir", "-p", "/etc/pacman.d"]);
+    } else {
+      await execWithOutput("mkdir", ["-p", "/etc/pacman.d"]);
+    }
     const mirrorCmd = `echo "${mirrorUrl}" | tee ${mirrorlistPath}`;
     if (sudo) {
       await execWithOutput("sudo", ["bash", "-c", mirrorCmd]);
