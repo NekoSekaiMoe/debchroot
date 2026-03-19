@@ -31,7 +31,8 @@ export class ArchHandler implements DistroHandler {
 
 		// Configure pacman mirrorlist - required for pacstrap to work
 		// On fresh systems like GitHub Actions, no mirrorlist exists
-		const mirrorUrl = 'Server = https://mirrors.kernel.org/archlinux/$repo/os/$arch';
+		// Escape $ so they are written literally, not expanded by shell
+		const mirrorUrl = 'Server = https://mirrors.kernel.org/archlinux/\$repo/os/\$arch';
 		const mirrorlistPath = '/etc/pacman.d/mirrorlist';
 
 		// Create the directory first - it may not exist on fresh systems
