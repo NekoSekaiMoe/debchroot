@@ -1,3 +1,5 @@
+import * as fs from 'fs';
+import * as path from 'path';
 import { execWithOutput } from '../utils/exec';
 import { getSudo, installPackages, type PackageManager } from '../utils/system';
 import type { DistroConfig, DistroHandler } from './base';
@@ -41,12 +43,14 @@ export class ArchHandler implements DistroHandler {
 			await execWithOutput('mkdir', ['-p', '/etc/pacman.d']);
 		}
 
-		// Use single quotes in shell to prevent $repo/$arch expansion
-		const mirrorCmd = `echo '${mirrorUrl}' | tee ${mirrorlistPath}`;
+		// Write mirrorlist directly using Node.js fs, then fix permissions with sudo
+		// This avoids all shell quoting/escaping issues
+		const tempMirrorlist = path.join('/tmp', 'mirrorlist');
+		fs.writeFileSync(tempMirrorlist, mirrorUrl + '\n');
 		if (sudo) {
-			await execWithOutput('sudo', ['bash', '-c', mirrorCmd]);
+			await execWithOutput('sudo', ['cp', tempMirrorlist, mirrorlistPath]);
 		} else {
-			await execWithOutput('bash', ['-c', mirrorCmd]);
+			fs.copyFileSync(tempMirrorlist, mirrorlistPath);
 		}
 
 		const packages = ['base'];
