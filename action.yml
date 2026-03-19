@@ -1,48 +1,48 @@
-name: 'Action debootstrap'
-branding:
-  icon: 'check-square'
-  color: 'blue'
-description: 'Run cross-architecture via debootstrap.'
+name: 'debchroot'
+description: 'Cross-distribution rootfs creation and chroot execution for GitHub Actions'
 author: 'dabao1955'
-inputs:
-  arch:
-    default: 'arm64'
-  version:
-    default: 'bookworm'  
+branding:
+  icon: 'box'
+  color: 'blue'
 
+inputs:
+  distro:
+    description: |
+      Target Linux distribution:
+      - debian, ubuntu (uses debootstrap)
+      - arch (uses pacstrap)
+      - alpine (uses alpine-make-rootfs)
+      - fedora (uses dnf, experimental)
+      - opensuse (uses zypper, experimental)
+    required: false
+    default: 'debian'
+  
+  arch:
+    description: 'Target architecture (amd64, arm64, armhf, i386, etc.)'
+    required: false
+    default: 'arm64'
+  
+  version:
+    description: |
+      Distribution version:
+      - debian: bookworm, bullseye, trixie, etc.
+      - ubuntu: jammy, noble, etc.
+      - arch: base (ignored)
+      - alpine: v3.19, v3.20, edge, etc.
+      - fedora: 39, 40, rawhide, etc.
+      - opensuse: leap/15.5, tumbleweed, etc.
+    required: false
+    default: 'bookworm'
+  
+  packages:
+    description: 'Additional packages to install (space-separated)'
+    required: false
+    default: ''
+
+outputs:
+  rootfs:
+    description: 'Path to the created rootfs'
 
 runs:
-  using: 'composite'
-  steps:
-
-    - name: Build Kernel
-      shell: bash
-      run: |
-
-         if [[ ${GITHUB_ACTIONS} != "true" || ${OSTYPE} != "linux-gnu" || ! -f /bin/apt ]]; then
-             printf "This Action Is Intended For Debian-based Runner.\n"
-             exit 127
-         fi
-
-         if [ "$(id -u)" -eq 0 ]; then
-             export SU=
-         else
-             export SU=sudo
-         fi
-         echo "::group:: Installing Building Depend Packages"
-         "$SU" apt-get update
-         "$SU" apt-get install --no-install-recommends -y qemu-user-static debootstrap
-         echo "::endgroup::"
-
-         echo "::group:: Initializing rootfs"
-         "$SU" debootstrap  --variant=minbase --arch ${{ inputs.arch }} ${{ inputs.version }} "$HOME/rootfs"
-         echo "::endgroup::"
-
-         echo "::group:: Downloading shell"
-         "$SU" wget https://github.com/NekoSekaiMoe/debchroot/raw/main/debsh -O /usr/bin/debsh
-         "$SU" chmod +x -v /usr/bin/debsh
-         echo "::endgroup::"
-
-         echo "::group:: Running uname -a"
-         /usr/bin/debsh uname -a
-         echo "::endgroup::"
+  using: 'node24'
+  main: 'dist/index.js'
