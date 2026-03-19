@@ -19813,9 +19813,9 @@ Support boolean input list: \`true | True | TRUE | false | False | FALSE\``);
   }
 });
 
-// node_modules/semver/semver.js
+// node_modules/@actions/tool-cache/node_modules/semver/semver.js
 var require_semver = __commonJS({
-  "node_modules/semver/semver.js"(exports2, module2) {
+  "node_modules/@actions/tool-cache/node_modules/semver/semver.js"(exports2, module2) {
     exports2 = module2.exports = SemVer;
     var debug;
     if (typeof process === "object" && process.env && process.env.NODE_DEBUG && /\bsemver\b/i.test(process.env.NODE_DEBUG)) {
@@ -21767,8 +21767,10 @@ module.exports = __toCommonJS(main_exports);
 var core5 = __toESM(require_core());
 var exec3 = __toESM(require_exec());
 
-// src/distros/debian.ts
+// src/distros/alpine.ts
+var fs = __toESM(require("node:fs"));
 var core = __toESM(require_core());
+var tc = __toESM(require_tool_cache());
 
 // src/utils/exec.ts
 var exec = __toESM(require_exec());
@@ -21814,19 +21816,19 @@ async function installPackages(pm, packages) {
   switch (pm) {
     case "apt":
       await execWithOutput(sudo || "apt-get", ["apt-get", "update"].filter(Boolean));
-      await execWithOutput(sudo || "apt-get", [
-        "apt-get",
-        "install",
-        "--no-install-recommends",
-        "-y",
-        ...packages
-      ].filter(Boolean));
+      await execWithOutput(
+        sudo || "apt-get",
+        ["apt-get", "install", "--no-install-recommends", "-y", ...packages].filter(Boolean)
+      );
       break;
     case "dnf":
       await execWithOutput(sudo || "dnf", ["dnf", "install", "-y", ...packages].filter(Boolean));
       break;
     case "zypper":
-      await execWithOutput(sudo || "zypper", ["zypper", "install", "-y", ...packages].filter(Boolean));
+      await execWithOutput(
+        sudo || "zypper",
+        ["zypper", "install", "-y", ...packages].filter(Boolean)
+      );
       break;
     case "pacman":
       await execWithOutput(sudo || "pacman", ["pacman", "-Sy", ...packages].filter(Boolean));
@@ -21836,7 +21838,80 @@ async function installPackages(pm, packages) {
   }
 }
 
+// src/distros/alpine.ts
+var AlpineHandler = class {
+  name = "Alpine Linux";
+  alpineMakeRootfsPath;
+  async validateEnvironment() {
+    return;
+  }
+  async installTools(packageManager2) {
+    await installPackages(packageManager2, ["wget", "qemu-user-static"]);
+    const version = "v0.8.1";
+    const url = `https://raw.githubusercontent.com/alpinelinux/alpine-make-rootfs/${version}/alpine-make-rootfs`;
+    core.info(`Downloading alpine-make-rootfs ${version}...`);
+    const downloadPath = await tc.downloadTool(url);
+    await fs.promises.chmod(downloadPath, 493);
+    this.alpineMakeRootfsPath = downloadPath;
+  }
+  async createRootfs(config) {
+    if (!this.alpineMakeRootfsPath) {
+      throw new Error("alpine-make-rootfs not downloaded");
+    }
+    const sudo = await getSudo();
+    const args = [this.alpineMakeRootfsPath, "--branch", config.version];
+    if (config.packages.length > 0) {
+      args.push("--packages", config.packages.join(" "));
+    }
+    args.push(config.rootfs);
+    if (sudo) {
+      await execWithOutput("sudo", args);
+    } else {
+      await execWithOutput(this.alpineMakeRootfsPath, [
+        "--branch",
+        config.version,
+        ...config.packages.length > 0 ? ["--packages", config.packages.join(" ")] : [],
+        config.rootfs
+      ]);
+    }
+  }
+};
+
+// src/distros/arch.ts
+var ArchHandler = class {
+  name = "Arch Linux";
+  async validateEnvironment() {
+    return;
+  }
+  async installTools(packageManager2) {
+    await installPackages(packageManager2, ["arch-install-scripts", "qemu-user-static"]);
+  }
+  async createRootfs(config) {
+    const sudo = await getSudo();
+    await execWithOutput(sudo || "mkdir", ["mkdir", "-p", config.rootfs].filter(Boolean));
+    await installPackages(packageManager, ["archlinux-keyring"]);
+    const packages = ["base"];
+    if (config.packages.length > 0) {
+      packages.push(...config.packages);
+    }
+    const args = [
+      "pacstrap",
+      "-c",
+      // Use host cache
+      config.rootfs,
+      ...packages
+    ];
+    if (sudo) {
+      await execWithOutput("sudo", args);
+    } else {
+      await execWithOutput("pacstrap", ["-c", config.rootfs, ...packages]);
+    }
+  }
+};
+var packageManager = "apt";
+
 // src/distros/debian.ts
+var core2 = __toESM(require_core());
 var DebianHandler = class {
   name = "Debian/Ubuntu";
   async validateEnvironment() {
@@ -21869,13 +21944,8 @@ var DebianHandler = class {
       ]);
     }
     if (config.packages.length > 0) {
-      core.info(`Installing additional packages: ${config.packages.join(" ")}`);
-      const chrootArgs = [
-        "chroot",
-        config.rootfs,
-        "apt-get",
-        "update"
-      ];
+      core2.info(`Installing additional packages: ${config.packages.join(" ")}`);
+      const chrootArgs = ["chroot", config.rootfs, "apt-get", "update"];
       const installArgs = [
         "chroot",
         config.rootfs,
@@ -21892,84 +21962,6 @@ var DebianHandler = class {
         await execWithOutput("chroot", chrootArgs.slice(1));
         await execWithOutput("chroot", installArgs.slice(1));
       }
-    }
-  }
-};
-
-// src/distros/arch.ts
-var ArchHandler = class {
-  name = "Arch Linux";
-  async validateEnvironment() {
-    return;
-  }
-  async installTools(packageManager2) {
-    await installPackages(packageManager2, ["arch-install-scripts", "qemu-user-static"]);
-  }
-  async createRootfs(config) {
-    const sudo = await getSudo();
-    await installPackages(packageManager, ["archlinux-keyring"]);
-    const packages = ["base"];
-    if (config.packages.length > 0) {
-      packages.push(...config.packages);
-    }
-    const args = [
-      "pacstrap",
-      "-c",
-      // Use host cache
-      config.rootfs,
-      ...packages
-    ];
-    if (sudo) {
-      await execWithOutput("sudo", args);
-    } else {
-      await execWithOutput("pacstrap", ["-c", config.rootfs, ...packages]);
-    }
-  }
-};
-var packageManager = "apt";
-
-// src/distros/alpine.ts
-var core2 = __toESM(require_core());
-var tc = __toESM(require_tool_cache());
-var fs = __toESM(require("fs"));
-var AlpineHandler = class {
-  name = "Alpine Linux";
-  alpineMakeRootfsPath;
-  async validateEnvironment() {
-    return;
-  }
-  async installTools(packageManager2) {
-    await installPackages(packageManager2, ["wget", "qemu-user-static"]);
-    const version = "v0.8.1";
-    const url = `https://raw.githubusercontent.com/alpinelinux/alpine-make-rootfs/${version}/alpine-make-rootfs`;
-    core2.info(`Downloading alpine-make-rootfs ${version}...`);
-    const downloadPath = await tc.downloadTool(url);
-    await fs.promises.chmod(downloadPath, 493);
-    this.alpineMakeRootfsPath = downloadPath;
-  }
-  async createRootfs(config) {
-    if (!this.alpineMakeRootfsPath) {
-      throw new Error("alpine-make-rootfs not downloaded");
-    }
-    const sudo = await getSudo();
-    const args = [
-      this.alpineMakeRootfsPath,
-      "--branch",
-      config.version
-    ];
-    if (config.packages.length > 0) {
-      args.push("--packages", config.packages.join(" "));
-    }
-    args.push(config.rootfs);
-    if (sudo) {
-      await execWithOutput("sudo", args);
-    } else {
-      await execWithOutput(this.alpineMakeRootfsPath, [
-        "--branch",
-        config.version,
-        ...config.packages.length > 0 ? ["--packages", config.packages.join(" ")] : [],
-        config.rootfs
-      ]);
     }
   }
 };
@@ -22010,12 +22002,7 @@ var FedoraHandler = class {
     } else {
       await execWithOutput("dnf", args.slice(1));
     }
-    const cleanArgs = [
-      "dnf",
-      `--installroot=${config.rootfs}`,
-      "clean",
-      "all"
-    ];
+    const cleanArgs = ["dnf", `--installroot=${config.rootfs}`, "clean", "all"];
     if (sudo) {
       await execWithOutput("sudo", cleanArgs);
     } else {
@@ -22046,14 +22033,7 @@ var OpenSUSEHandler = class {
     } else {
       repoUrl = `https://download.opensuse.org/distribution/leap/${config.version}/repo/oss/`;
     }
-    const repoArgs = [
-      "zypper",
-      `--root=${config.rootfs}`,
-      "addrepo",
-      "-f",
-      repoUrl,
-      "repo-oss"
-    ];
+    const repoArgs = ["zypper", `--root=${config.rootfs}`, "addrepo", "-f", repoUrl, "repo-oss"];
     if (sudo) {
       await execWithOutput("sudo", repoArgs);
     } else {
@@ -22098,12 +22078,14 @@ function getDistroHandler(distro) {
     case "suse":
       return new OpenSUSEHandler();
     default:
-      throw new Error(`Unsupported distribution: ${distro}. Supported: debian, ubuntu, arch, alpine, fedora, opensuse`);
+      throw new Error(
+        `Unsupported distribution: ${distro}. Supported: debian, ubuntu, arch, alpine, fedora, opensuse`
+      );
   }
 }
 
 // src/utils/debsh.ts
-var fs2 = __toESM(require("fs"));
+var fs2 = __toESM(require("node:fs"));
 async function createDebsh(rootfs) {
   const debshContent = `#!/usr/bin/env bash
 set -e

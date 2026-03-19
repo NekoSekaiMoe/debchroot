@@ -1,50 +1,52 @@
-import * as core from '@actions/core';
-import { DistroHandler, DistroConfig } from './base';
 import { execWithOutput } from '../utils/exec';
-import { installPackages, PackageManager, getSudo } from '../utils/system';
+import { getSudo, installPackages, type PackageManager } from '../utils/system';
+import type { DistroConfig, DistroHandler } from './base';
 
 export class ArchHandler implements DistroHandler {
-  readonly name = 'Arch Linux';
+	readonly name = 'Arch Linux';
 
-  async validateEnvironment(): Promise<void> {
-    // Arch can be created on any Linux with pacstrap
-    return;
-  }
+	async validateEnvironment(): Promise<void> {
+		// Arch can be created on any Linux with pacstrap
+		return;
+	}
 
-  async installTools(packageManager: PackageManager): Promise<void> {
-    // arch-install-scripts provides pacstrap
-    await installPackages(packageManager, ['arch-install-scripts', 'qemu-user-static']);
-  }
+	async installTools(packageManager: PackageManager): Promise<void> {
+		// arch-install-scripts provides pacstrap
+		await installPackages(packageManager, ['arch-install-scripts', 'qemu-user-static']);
+	}
 
-  async createRootfs(config: DistroConfig): Promise<void> {
-    const sudo = await getSudo();
-    
-    // pacstrap needs the arch-keyring to be installed first
-    await installPackages(packageManager, ['archlinux-keyring']);
-    
-    const packages = ['base'];
-    if (config.packages.length > 0) {
-      packages.push(...config.packages);
-    }
+	async createRootfs(config: DistroConfig): Promise<void> {
+		const sudo = await getSudo();
 
-    const args = [
-      'pacstrap',
-      '-c',  // Use host cache
-      config.rootfs,
-      ...packages
-    ];
+		// Create rootfs directory first (pacstrap doesn't create it automatically)
+		await execWithOutput(sudo || 'mkdir', ['mkdir', '-p', config.rootfs].filter(Boolean));
 
-    if (sudo) {
-      await execWithOutput('sudo', args);
-    } else {
-      await execWithOutput('pacstrap', ['-c', config.rootfs, ...packages]);
-    }
-  }
+		// pacstrap needs the arch-keyring to be installed first
+		await installPackages(packageManager, ['archlinux-keyring']);
+
+		const packages = ['base'];
+		if (config.packages.length > 0) {
+			packages.push(...config.packages);
+		}
+
+		const args = [
+			'pacstrap',
+			'-c', // Use host cache
+			config.rootfs,
+			...packages,
+		];
+
+		if (sudo) {
+			await execWithOutput('sudo', args);
+		} else {
+			await execWithOutput('pacstrap', ['-c', config.rootfs, ...packages]);
+		}
+	}
 }
 
 // Need to get packageManager from somewhere - will be passed in installTools
 let packageManager: PackageManager = 'apt'; // default
 
 export function setPackageManager(pm: PackageManager): void {
-  packageManager = pm;
+	packageManager = pm;
 }
